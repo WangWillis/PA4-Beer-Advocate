@@ -12,6 +12,8 @@ from config import cfg
 import pandas as pd
 from nltk.translate import bleu_score
 
+DATA_SET_DIR = '/datasets/cs190f-public/BeerAdvocateDataset/'
+
 START_CHAR = 'BOS'
 STOP_CHAR = 'EOS'
 
@@ -85,9 +87,9 @@ def save_to_file(outputs, fname):
     
 
 if __name__ == "__main__":
-    train_data_fname = ""
-    test_data_fname = ""
-    out_fname = ""
+    train_data_fname = DATA_SET_DIR+'BeerAdvocate_Train.csv'
+    test_data_fname = DATA_SET_DIR+'BeerAdvocate_Test.csv'
+    out_fname = 'out.txt'
     
     train_data = load_data(train_data_fname) # Generating the pandas DataFrame
     test_data = load_data(test_data_fname) # Generating the pandas DataFrame
