@@ -10,6 +10,17 @@ from config import cfg
 import pandas as pd
 from nltk.translate import bleu_score
 
+import string
+import json
+
+CHAR_MAP_FILE = 'char_map.json'
+with open(CHAR_MAP_FILE, 'r') as cmap_file:
+    CHAR_MAP = json.load(cmap_file)
+
+def char_to_one_hot(c, char_map=CHAR_MAP):
+    char_vec = [0. for i in range(len(char_map))]
+    char_vec[char_map[c]] = 1.
+    return char_vec
 
 def load_data(fname):
     # TODO: From the csv file given by filename and return a pandas DataFrame of the read csv.
