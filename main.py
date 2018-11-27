@@ -71,8 +71,26 @@ def pad_data(orig_data):
     
 
 def train(model, X_train, y_train, X_valid, y_valid, cfg):
-    # TODO: Train the model!
-    raise NotImplementedError
+    epochs = cfg['epochs']
+    batch_size = cfg['batch_size']
+    learing_rate = cfg['learning_rate']
+    reg_const = cfg['L2_penalty']]
+    num_mini_batches = int(len(X_train)/batch_size)
+
+    val_loss = []
+    for epoch in range(epochs):
+        total_train_loss = 0.
+        print('Starting epoch: %d' % epoch)
+        for i in range(0, len(X_train), batch_size):
+            end_pos = i+batch_size
+            batch_vec = X_train[i:end_pos]
+            batch_targ = y_train[i:end_pos]
+
+
+
+        # validate the model
+
+        # print statistics
     
     
 def generate(model, X_test, cfg):
@@ -82,9 +100,8 @@ def generate(model, X_test, cfg):
     
     
 def save_to_file(outputs, fname):
-    # TODO: Given the list of generated review outputs and output file name, save all these reviews to
-    # the file in .txt format.
-    raise NotImplementedError
+    with open(fname, 'w') as out_file:
+        out_file.write(outputs)
     
 
 if __name__ == "__main__":
