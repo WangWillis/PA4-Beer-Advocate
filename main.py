@@ -17,6 +17,7 @@ DATA_SET_DIR = '/datasets/cs190f-public/BeerAdvocateDataset/'
 START_CHAR = 'BOS'
 STOP_CHAR = 'EOS'
 
+SOS_VEC = char_to_one_hot(START_CHAR)
 EOS_VEC = char_to_one_hot(STOP_CHAR)
 
 CHAR_MAP_FILE = 'char_map.json' 
