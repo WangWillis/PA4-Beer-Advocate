@@ -10,7 +10,10 @@ class baselineLSTM(nn.Module):
         # Initialize your layers and variables that you want;
         # Keep in mind to include initialization for initial hidden states of LSTM, you
         # are going to need it, so design this class wisely.
+        pass
         
     def forward(self, sequence):
         # Takes in the sequence of the form (batch_size x sequence_length x input_dim) and
         # returns the output of form (batch_size x sequence_length x output_dim)
+        pass
+
