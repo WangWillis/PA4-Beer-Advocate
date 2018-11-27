@@ -8,7 +8,7 @@ import copy
 import json
 import matplotlib.pyplot as plt
 from models import *
-from config import cfg
+from configs import cfg
 import pandas as pd
 from nltk.translate import bleu_score
 
