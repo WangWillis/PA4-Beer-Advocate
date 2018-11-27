@@ -4,28 +4,31 @@ import torch.optim as optim
 from torch.autograd import Variable
 import numpy as np
 import os
+import copy
+import json
 import matplotlib.pyplot as plt
 from models import *
 from config import cfg
 import pandas as pd
 from nltk.translate import bleu_score
 
-import string
-import json
+START_CHAR = 'BOS'
+STOP_CHAR = 'EOS'
 
-CHAR_MAP_FILE = 'char_map.json'
+EOS_VEC = char_to_one_hot(STOP_CHAR)
+
+CHAR_MAP_FILE = 'char_map.json' 
 with open(CHAR_MAP_FILE, 'r') as cmap_file:
     CHAR_MAP = json.load(cmap_file)
 
 def char_to_one_hot(c, char_map=CHAR_MAP):
     char_vec = [0. for i in range(len(char_map))]
     char_vec[char_map[c]] = 1.
-    return char_vec
+    return torch.tensor(char_vec)
 
 def load_data(fname):
-    # TODO: From the csv file given by filename and return a pandas DataFrame of the read csv.
-    raise NotImplementedError
-
+    df = pd.read_csv(fname)
+    return df
 
 def process_train_data(data):
     # TODO: Input is a pandas DataFrame and return a numpy array (or a torch Tensor/ Variable)
@@ -51,7 +54,17 @@ def pad_data(orig_data):
     # of varying lengths, you will need to pad your data so that all samples have reviews of length
     # equal to the longest review in a batch. You will pad all the sequences with <EOS> character 
     # representation in one hot encoding.
-    raise NotImplementedError
+    pad_data = []
+    longest = 0
+    for rev in orig_data:
+        longest = max(len(rev), longest)
+
+    for rev in orig_data:
+        pad = EOS_VEC.repeat(longest-len(rev), 1)
+        pad_data.append(torch.cat((rev,pad)))
+
+    return np.array(pad_data)
+
     
 
 def train(model, X_train, y_train, X_valid, y_valid, cfg):
