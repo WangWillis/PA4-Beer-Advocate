@@ -21,7 +21,11 @@ CHAR_MAP_FILE = 'char_map.json'
 with open(CHAR_MAP_FILE, 'r') as cmap_file:
     CHAR_MAP = json.load(cmap_file)
 
-def char_to_one_hot(c, char_map=CHAR_MAP):
+BEER_STYLE_MAP_FILE = 'beer_styles.json' 
+with open(BEER_STYLE_MAP_FILE, 'r') as bmap_file:
+    BEER_MAP = json.load(bmap_file)
+
+def dict_to_one_hot(c, char_map=CHAR_MAP):
     char_vec = [0. for i in range(len(char_map))]
     char_vec[char_map[c]] = 1.
     return char_vec
@@ -29,10 +33,11 @@ def char_to_one_hot(c, char_map=CHAR_MAP):
 def gen_one_hots(char_map=CHAR_MAP):
     one_hot_dict = {}
     for key in char_map:
-        one_hot_dict[key] = char_to_one_hot(key, char_map)
+        one_hot_dict[key] = dict_to_one_hot(key, char_map)
     return one_hot_dict
 
 ONE_HOT_DICT = gen_one_hots()
+BEER_STYLE_DICT = gen_one_hots(BEER_MAP)
 
 SOS_VEC = ONE_HOT_DICT[START_CHAR]
 EOS_VEC = ONE_HOT_DICT[STOP_CHAR]
