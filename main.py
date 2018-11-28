@@ -13,6 +13,8 @@ from configs import cfg
 import pandas as pd
 from nltk.translate import bleu_score
 
+import gc
+
 DATA_SET_DIR = '/datasets/cs190f-public/BeerAdvocateDataset/'
 
 START_CHAR = 'BOS'
@@ -27,8 +29,8 @@ with open(BEER_STYLE_MAP_FILE, 'r') as bmap_file:
     BEER_MAP = json.load(bmap_file)
 
 def dict_to_one_hot(c, char_map=CHAR_MAP):
-    char_vec = [0. for i in range(len(char_map))]
-    char_vec[char_map[c]] = 1.
+    char_vec = [0 for i in range(len(char_map))]
+    char_vec[char_map[c]] = 1
     return char_vec
 
 def gen_one_hots(char_map=CHAR_MAP):
@@ -50,38 +52,36 @@ def load_data(fname):
 def process_train_data(data):
     # TODO: Input is a pandas DataFrame and return a numpy array (or a torch Tensor/ Variable)
     # that has all features (including characters in one hot encoded form).
-    start = time.time()
     data = data[['beer/style','review/overall','review/text']]
     feats = []
     targs = []
     # For every review
     for index, row in data.iterrows():
         beer_style_vec = BEER_STYLE_DICT[row['beer/style']]
-        r_score = float(row['review/overall'])
-        start_feat = copy.copy(SOS_VEC)
-        start_feat.extend(beer_style_vec)
-        start_feat.append(r_score)
+        r_score = [float(row['review/overall'])]
+        start_feat = SOS_VEC+beer_style_vec+r_score
 
         feat = [start_feat]
         targ = []
         for c in str(row['review/text']):
             if (c in ONE_HOT_DICT):
-                char_vec = ONE_HOT_DICT[c]
-                char_vec = copy.copy(char_vec)
-                char_vec.extend(beer_style_vec)
-                char_vec.append(r_score)
-                feat.append(char_vec)
-                targ.append(char_vec)
-            
-        targ.append(EOS_VEC)
+                feat_vec = ONE_HOT_DICT[c]+beer_style_vec+r_score
 
+                feat.append(feat_vec)
+                targ.append(CHAR_MAP[c])
+                # del feat_vec
+
+        targ.append(CHAR_MAP[STOP_CHAR])
         feats.append(feat)
         targs.append(targ)
-    print('Processing time for size %d dataset: %.2f' % (data.shape[0], time.time()-start))
+
+        # del beer_style_vec, r_score, feat, targ, start_feat
+    # del data
+
     return feats, targs
 
     
-def train_valid_split(data, split_perc=0.8):
+def train_valid_split(data, split_perc=0.80):
     split_idx = int(split_perc*data.shape[0])
     data = data.sample(frac=1).reset_index(drop=True)
     return data[:split_idx], data[split_idx:] 
@@ -89,38 +89,42 @@ def train_valid_split(data, split_perc=0.8):
 def process_test_data(data):
     data = data[['beer/style','review/overall']]
     feats = []
-    # For every review
-    for index, row in data.iterrows():
+    # # For every review
+    # for index, row in data.iterrows():
 
         metadata = []
         metadata.extend(BEER_STYLE_DICT[row['beer/style']])
         metadata.append(float(row['review/overall']))
 
-        review = [SOS_VEC + metadata]
+    #     review = [SOS_VEC + metadata]
 
-        feats.append(review)
+    #     feats.append(review)
     return feats
-    
-def pad_data(orig_data):
+
+EOS_PAD = EOS_VEC+[0 for i in range(len(BEER_STYLE_DICT))]+[0]
+MAX_TRAIN_LEN = 10000
+def pad_data(orig_data, targ=False):
     # TODO: Since you will be training in batches and training sample of each batch may have reviews
     # of varying lengths, you will need to pad your data so that all samples have reviews of length
     # equal to the longest review in a batch. You will pad all the sequences with <EOS> character 
     # representation in one hot encoding.
-    pad_data = []
+    eos_vec = EOS_PAD
+    if (targ):
+        eos_vec = CHAR_MAP[STOP_CHAR]
+    pad_arr = [eos_vec for i in range(MAX_TRAIN_LEN)]
+
     longest = 0
     for rev in orig_data:
         longest = max(len(rev), longest)
 
-    pad_vec = copy.copy(EOS_VEC)
-    pad_vec.extend([0 for i in range(len(BEER_STYLE_DICT))])
-    pad_vec.append(0)
-    pad = [pad_vec for i in range(longest)]
     for rev in orig_data:
-        pad_data.append(rev.extend(pad[:longest-len(rev)]))
-
-    return torch.tensor(pad_data)
+        rev.extend(pad_arr[:longest-len(rev)])
+    tensor = torch.tensor(orig_data)
+    # del orig_data, pad_arr, longest, eos_vec
+    return tensor
 
 CHECK_SIZE = 10
+VOCAB_SIZE = len(ONE_HOT_DICT)
 def train(model, train_data, val_data, cfg):
     epochs = cfg['epochs']
     batch_size = cfg['batch_size']
@@ -128,55 +132,71 @@ def train(model, train_data, val_data, cfg):
     reg_const = cfg['L2_penalty']
 
     opt = optim.Adam(model.parameters(), lr=learning_rate)
+    # del learning_rate, reg_const
     loss_func = nn.CrossEntropyLoss()
-
-    train_batch = []
-
-    x_valid, y_valid = process_train_data(val_data)
-    x_valid = pad_data(x_valid)
-    y_valid = pad_data(y_valid)
 
     val_loss = []
     for epoch in range(epochs):
         total_train_loss = 0.
         print('Starting epoch: %d' % epoch)
-        for i in range(0, len(X_train), batch_size):
+        for i in range(0, len(train_data), batch_size):
             mini_batch = int(i/batch_size)
             end_pos = i+batch_size
 
             batch_data = train_data[i:end_pos]
+            # del end_pos
             # so it does not have to pad every time in future epochs
-            if (mini_batch >= len(train_batch)):
-                batch_vec, batch_targ = process_train_data(batch_data)
-                batch_vec = pad_data(batch_vec)
-                batch_targ = pad_data(batch_targ)
-                train_batch.append((batch_vec, batch_targ))
-            batch_vec, batch_targ = train_batch[mini_batch]
+            batch_vec, batch_targ = process_train_data(batch_data)
+            batch_vec = pad_data(batch_vec)
+            batch_targ = pad_data(batch_targ, targ=True)
 
             opt.zero_grad()
 
-            model.set_hidden(batch_size, zero=True)
-            out = model(batch_vec, train=True)
-            loss = loss_func(out, batch_targ)
-            total_train_loss += loss
+            out = model(batch_vec, train=True, init_hidden=True)
+            flat_out = out.contiguous().view(-1,VOCAB_SIZE).cuda()
+            flat_targ = batch_targ.contiguous().view(-1).cuda()
+            loss = loss_func(flat_out, flat_targ)
+            total_train_loss += float(loss)
             
-            loss.backwards()
+            loss.backward()
             opt.step()
 
-            del batch_vec, batch_targ, out, loss
+            # del loss, out, batch_vec, batch_targ, flat_out, flat_targ, batch_data
 
-            if (mini_batch % CHECK_SIZE == 0):
+            if (mini_batch % CHECK_SIZE == 0 and mini_batch != 0):
                 # validate the model
-                model.set_hidden(len(X_valid), zero=True)
-                v_out = model(x_valid)
-                v_loss = loss_func(v_out, y_valid)
-                val_loss.append(v_loss)
+                tot_val_loss = 0.
+                for j in range(0, len(val_data), batch_size):
+                    end_pos = j+batch_size
+                    batch_data = val_data[j:end_pos]
+                    # del end_pos
+
+                    batch_vec, batch_targ = process_train_data(batch_data)
+                    batch_vec = pad_data(batch_vec)
+                    batch_targ = pad_data(batch_targ, targ=True)
+
+                    v_out = model(batch_vec, train=True, init_hidden=True)
+                    flat_out = v_out.contiguous().view(-1,VOCAB_SIZE).cuda()
+                    flat_targ = batch_targ.contiguous().view(-1).cuda()
+                    v_loss = loss_func(flat_out, flat_targ)
+                    tot_val_loss += float(v_loss)
+
+                    # del batch_vec, batch_targ, v_out, flat_out, v_loss, flat_targ, batch_data
+
+                avg_val_loss = tot_val_loss/(len(val_data)-(len(val_data)%batch_size))
+                avg_train_loss = total_train_loss/CHECK_SIZE
+
+                total_train_loss = 0.
+
+                val_loss.append(avg_val_loss)
+
                 # print statistics
                 print('Epoch %d, Mini_Batch %d' % (epoch, mini_batch))
-                print('Average Train Loss: %.4f, Validation Loss: %.4f' % (total_train_loss/batch_size, v_loss))
-                total_train_loss = 0.
-                
-                del v_out, v_loss
+                print('Average Train Loss: %.8f, Validation Loss: %.8f' % (avg_train_loss, avg_val_loss))
+
+                # del  avg_val_loss, avg_train_loss
+
+            # del mini_batch
     
     
 def generate(model, X_test, cfg):
@@ -188,8 +208,13 @@ def generate(model, X_test, cfg):
 def save_to_file(outputs, fname):
     with open(fname, 'w') as out_file:
         out_file.write(outputs)
-    
 
+if cfg['cuda']:
+    DEVICE = torch.device("cuda")
+else:
+    DEVICE = torch.device("cpu")
+
+DATA_PERC = 0.05
 if __name__ == "__main__":
     train_data_fname = DATA_SET_DIR+'BeerAdvocate_Train.csv'
     test_data_fname = DATA_SET_DIR+'BeerAdvocate_Test.csv'
@@ -197,15 +222,16 @@ if __name__ == "__main__":
     
     train_data = load_data(train_data_fname) # Generating the pandas DataFrame
     test_data = load_data(test_data_fname) # Generating the pandas DataFrame
+    train_data = train_data.sample(frac=DATA_PERC).reset_index(drop=True)
+    test_data = test_data.sample(frac=0.08*DATA_PERC).reset_index(drop=True)
+
+    print('Train Size: %d, Test Size: %d' % (train_data.shape[0], test_data.shape[0]))
+
     train_data,  val_data = train_valid_split(train_data) # Splitting the train data into train-valid data
     # X_test = process_test_data(test_data) # Converting DataFrame to numpy array
     
     model = baselineLSTM(cfg) # Replace this with model = <your model name>(cfg)
-    if cfg['cuda']:
-        computing_device = torch.device("cuda")
-    else:
-        computing_device = torch.device("cpu")
-    model.to(computing_device)
+    model.to(DEVICE)
     
     train(model, train_data,  val_data, cfg) # Train the model
     outputs = generate(model, X_test, cfg) # Generate the outputs for test data
