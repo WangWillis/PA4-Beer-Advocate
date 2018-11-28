@@ -56,19 +56,19 @@ def process_train_data(data):
     targs = []
     # For every review
     for index, row in data.iterrows():
-        review = [SOS_VEC]
-        for c in str(row['review/text']):
-            if (c in ONE_HOT_DICT):
-                review.append(ONE_HOT_DICT[c])
-        review.append(EOS_VEC)
 
         metadata = []
         metadata.append(BEER_STYLE_DICT[row['beer/style'])
         metadata.append(float(row['review/overall']))
 
-        feats.append(review[:-1])
-        feats.extend(metadata)
+        review = [SOS_VEC.extend(metadata)]
 
+        for c in str(row['review/text']):
+            if (c in ONE_HOT_DICT):
+                review.append(ONE_HOT_DICT[c].extend(metadata))
+
+        review.append(EOS_VEC.extend(metadata))
+        feats.append(review[:-1])
         targs.append(review[1:])
     print('Processing time for size %d dataset: %.2f' % (data.shape[0], time.time()-start))
     return feats, targs
