@@ -67,10 +67,12 @@ def process_train_data(data):
         for c in str(row['review/text']):
             if (c in ONE_HOT_DICT):
                 char_vec = ONE_HOT_DICT[c]
-                feat_vec = copy.copy(char_vec)
-                feat_vec.extend(beer_style_vec)
-                feat_vec.append(r_score)
+                char_vec = copy.copy(char_vec)
+                char_vec.extend(beer_style_vec)
+                char_vec.append(r_score)
+                feat.append(char_vec)
                 targ.append(char_vec)
+            
         targ.append(EOS_VEC)
 
         feats.append(feat)
@@ -111,7 +113,7 @@ def pad_data(orig_data):
 
     pad_vec = copy.copy(EOS_VEC)
     pad_vec.extend([0 for i in range(len(BEER_STYLE_DICT))])
-    pac_vec.append(0)
+    pad_vec.append(0)
     pad = [pad_vec for i in range(longest)]
     for rev in orig_data:
         pad_data.append(rev.extend(pad[:longest-len(rev)]))
