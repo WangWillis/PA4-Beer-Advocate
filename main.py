@@ -56,20 +56,25 @@ def process_train_data(data):
     targs = []
     # For every review
     for index, row in data.iterrows():
+        beer_style_vec = BEER_STYLE_DICT[row['beer/style']]
+        r_score = float(row['review/overall'])
+        start_feat = copy.copy(SOS_VEC)
+        start_feat.extend(beer_style_vec)
+        start_feat.append(r_score)
 
-        metadata = []
-        metadata.append(BEER_STYLE_DICT[row['beer/style'])
-        metadata.append(float(row['review/overall']))
-
-        review = [SOS_VEC.extend(metadata)]
-
+        feat = [start_feat]
+        targ = []
         for c in str(row['review/text']):
             if (c in ONE_HOT_DICT):
-                review.append(ONE_HOT_DICT[c].extend(metadata))
+                char_vec = ONE_HOT_DICT[c]
+                feat_vec = copy.copy(char_vec)
+                feat_vec.extend(beer_style_vec)
+                feat_vec.append(r_score)
+                targ.append(char_vec)
+        targ.append(EOS_VEC)
 
-        review.append(EOS_VEC.extend(metadata))
-        feats.append(review[:-1])
-        targs.append(review[1:])
+        feats.append(feat)
+        targs.append(targ)
     print('Processing time for size %d dataset: %.2f' % (data.shape[0], time.time()-start))
     return feats, targs
 
@@ -92,12 +97,14 @@ def pad_data(orig_data):
     for rev in orig_data:
         longest = max(len(rev), longest)
 
-    pad = [EOS_VEC for i in range(longest)]
+    pad_vec = copy.copy(EOS_VEC)
+    pad_vec.extend([0 for i in range(len(BEER_STYLE_DICT))])
+    pac_vec.append(0)
+    pad = [pad_vec for i in range(longest)]
     for rev in orig_data:
-        pad = [EOS_VEC for i in range(longest-len(rev))]
         pad_data.append(rev.extend(pad[:longest-len(rev)]))
 
-    return pad_data
+    return torch.tensor(pad_data)
 
 CHECK_SIZE = 10
 def train(model, train_data, val_data, cfg):
