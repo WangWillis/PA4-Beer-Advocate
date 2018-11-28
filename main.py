@@ -26,8 +26,16 @@ def char_to_one_hot(c, char_map=CHAR_MAP):
     char_vec[char_map[c]] = 1.
     return char_vec
 
-SOS_VEC = char_to_one_hot(START_CHAR)
-EOS_VEC = char_to_one_hot(STOP_CHAR)
+def gen_one_hots(char_map=CHAR_MAP):
+    one_hot_dict = {}
+    for key in char_map:
+        one_hot_dict[key] = char_to_one_hot(key, char_map)
+    return one_hot_dict
+
+ONE_HOT_DICT = gen_one_hots()
+
+SOS_VEC = ONE_HOT_DICT[START_CHAR]
+EOS_VEC = ONE_HOT_DICT[STOP_CHAR]
 
 def load_data(fname):
     df = pd.read_csv(fname)
@@ -39,9 +47,10 @@ def process_train_data(data):
     data = data[['beer/style','review/overall','review/text']]
     # For every review
     for index, row in data.iterrows():
-        review = []
+        review = [SOS_VEC]
         for c in str(row['review/text']):
-            review.append(char_to_one_hot(c))
+            review.append(ONE_HOT_DICT[c])
+        review.append(EOS_VEC)
         yield review
 
     
