@@ -1,3 +1,4 @@
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -8,7 +9,7 @@ import copy
 import json
 import matplotlib.pyplot as plt
 from models import *
-# from configs import cfg
+from configs import cfg
 import pandas as pd
 from nltk.translate import bleu_score
 
@@ -44,21 +45,27 @@ def load_data(fname):
 def process_train_data(data):
     # TODO: Input is a pandas DataFrame and return a numpy array (or a torch Tensor/ Variable)
     # that has all features (including characters in one hot encoded form).
+    start = time.time()
     data = data[['beer/style','review/overall','review/text']]
+    feats = []
+    targs = []
     # For every review
     for index, row in data.iterrows():
         review = [SOS_VEC]
         for c in str(row['review/text']):
-            review.append(ONE_HOT_DICT[c])
+            if (c in ONE_HOT_DICT):
+                review.append(ONE_HOT_DICT[c])
         review.append(EOS_VEC)
-        yield review
+        feats.append(review[:-1])
+        targs.append(review[1:])
+    print('Processing time for size %d dataset: %.2f' % (data.shape[0], time.time-time))
+    return feats, targs
 
     
-def train_valid_split(data, labels):
-    # TODO: Takes in train data and labels as numpy array (or a torch Tensor/ Variable) and
-    # splits it into training and validation data.
-    raise NotImplementedError
-    
+def train_valid_split(data, split_perc=0.8):
+    split_idx = int(split_perc*data.shape[0])
+    data = data.sample(frac=1).reset_index(drop=True)
+    return data[:split_idx], data[split_idx:] 
     
 def process_test_data(data):
     raise NotImplementedError
@@ -73,37 +80,28 @@ def pad_data(orig_data):
     for rev in orig_data:
         longest = max(len(rev), longest)
 
+    pad = [EOS_VEC for i in range(longest)]
     for rev in orig_data:
-        pad = [copy.deepcopy(EOS_VEC) for i in range(longest-len(rev))]
-        pad_data.append(rev.extend(pad))
+        pad = [EOS_VEC for i in range(longest-len(rev))]
+        pad_data.append(rev.extend(pad[:longest-len(rev)]))
 
     return pad_data
 
-def get_batch(feat_iter, targ_iter, size):
-    batch_feat = []
-    batch_targ = []
-    for i, feat in feat_iter:
-        batch_feat.append(feat)
-        if (i == size):
-            break
-    for i, targ in targ_iter:
-        batch_targ.append(targ)
-        if (i == size):
-            break
-
-    return (pad_data(batch_feat), pad_data(batch_targ))
-
 CHECK_SIZE = 10
-def train(model, X_train, y_train, X_valid, y_valid, cfg):
+def train(model, train_data, val_data, cfg):
     epochs = cfg['epochs']
     batch_size = cfg['batch_size']
-    learing_rate = cfg['learning_rate']
+    learning_rate = cfg['learning_rate']
     reg_const = cfg['L2_penalty']
 
     opt = optim.Adam(model.parameters(), lr=learning_rate)
     loss_func = nn.CrossEntropyLoss()
 
     train_batch = []
+
+    x_valid, y_valid = process_train_data(val_data)
+    x_valid = pad_data(x_valid)
+    y_valid = pad_data(y_valid)
 
     val_loss = []
     for epoch in range(epochs):
@@ -113,16 +111,19 @@ def train(model, X_train, y_train, X_valid, y_valid, cfg):
             mini_batch = int(i/batch_size)
             end_pos = i+batch_size
 
+            batch_data = train_data[i:end_pos]
             # so it does not have to pad every time in future epochs
             if (mini_batch >= len(train_batch)):
-                batch_vec, batch_targ = get_batch(X_train, y_train, batch_size)
+                batch_vec, batch_targ = process_train_data(batch_data)
+                batch_vec = pad_data(batch_vec)
+                batch_targ = pad_data(batch_targ)
                 train_batch.append((batch_vec, batch_targ))
             batch_vec, batch_targ = train_batch[mini_batch]
 
             opt.zero_grad()
 
             model.set_hidden(batch_size, zero=True)
-            out = model(batch_vec)
+            out = model(batch_vec, train=True)
             loss = loss_func(out, batch_targ)
             total_train_loss += loss
             
@@ -134,7 +135,7 @@ def train(model, X_train, y_train, X_valid, y_valid, cfg):
             if (mini_batch % CHECK_SIZE == 0):
                 # validate the model
                 model.set_hidden(len(X_valid), zero=True)
-                v_out = model(X_valid)
+                v_out = model(x_valid)
                 v_loss = loss_func(v_out, y_valid)
                 val_loss.append(v_loss)
                 # print statistics
@@ -163,9 +164,8 @@ if __name__ == "__main__":
     
     train_data = load_data(train_data_fname) # Generating the pandas DataFrame
     test_data = load_data(test_data_fname) # Generating the pandas DataFrame
-    train_data, train_labels = process_train_data(train_data) # Converting DataFrame to numpy array
-    X_train, y_train, X_valid, y_valid = train_valid_split(train_data, train_labels) # Splitting the train data into train-valid data
-    X_test = process_test_data(test_data) # Converting DataFrame to numpy array
+    train_data,  val_data = train_valid_split(train_data) # Splitting the train data into train-valid data
+    # X_test = process_test_data(test_data) # Converting DataFrame to numpy array
     
     model = baselineLSTM(cfg) # Replace this with model = <your model name>(cfg)
     if cfg['cuda']:
@@ -174,6 +174,6 @@ if __name__ == "__main__":
         computing_device = torch.device("cpu")
     model.to(computing_device)
     
-    train(model, X_train, y_train, X_valid, y_valid, cfg) # Train the model
+    train(model, train_data,  val_data, cfg) # Train the model
     outputs = generate(model, X_test, cfg) # Generate the outputs for test data
     save_to_file(outputs, out_fname) # Save the generated outputs to a file
