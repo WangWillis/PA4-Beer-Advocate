@@ -80,7 +80,19 @@ def train_valid_split(data, split_perc=0.8):
     return data[:split_idx], data[split_idx:] 
     
 def process_test_data(data):
-    raise NotImplementedError
+    data = data[['beer/style','review/overall']]
+    feats = []
+    # For every review
+    for index, row in data.iterrows():
+
+        metadata = []
+        metadata.append(BEER_STYLE_DICT[row['beer/style'])
+        metadata.append(float(row['review/overall']))
+
+        review = [SOS_VEC + metadata]
+
+        feats.append(review)
+    return feats
     
 def pad_data(orig_data):
     # TODO: Since you will be training in batches and training sample of each batch may have reviews
