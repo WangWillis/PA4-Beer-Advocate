@@ -91,14 +91,14 @@ def get_batch(feat_iter, targ_iter, size):
         if (i == size):
             break
 
-    return (pad_data(batch_feat) pad_data(batch_targ))
+    return (pad_data(batch_feat), pad_data(batch_targ))
 
 CHECK_SIZE = 10
 def train(model, X_train, y_train, X_valid, y_valid, cfg):
     epochs = cfg['epochs']
     batch_size = cfg['batch_size']
     learing_rate = cfg['learning_rate']
-    reg_const = cfg['L2_penalty']]
+    reg_const = cfg['L2_penalty']
 
     opt = optim.Adam(model.parameters(), lr=learning_rate)
     loss_func = nn.CrossEntropyLoss()
