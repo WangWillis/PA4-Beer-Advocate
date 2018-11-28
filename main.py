@@ -93,7 +93,7 @@ def process_test_data(data):
     for index, row in data.iterrows():
 
         metadata = []
-        metadata.extend(BEER_STYLE_DICT[row['beer/style'])
+        metadata.extend(BEER_STYLE_DICT[row['beer/style']])
         metadata.append(float(row['review/overall']))
 
         review = [SOS_VEC + metadata]
