@@ -19,12 +19,12 @@ class baselineLSTM(nn.Module):
         self.directions = 2 if (config['bidirectional']) else 1
 
         self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, self.layers_dim,\
-                            batch_first=True, dropout=cfg['dropout'],\
-                            bidirectional=cfg['bidirectional'])
+                            batch_first=True, dropout=config['dropout'],\
+                            bidirectional=config['bidirectional'])
         self.hidden = None
-        self.set_hidden(zero=True)
+        self.set_hidden(batch_size=1, zero=True)
 
-        self.out_layer = nn.linear(self.hidden_dim, self.output_dim)
+        self.out_layer = nn.Linear(self.hidden_dim, self.output_dim)
         self.softmax = nn.Softmax()
 
     def set_hidden(self, batch_size, zero=False):
