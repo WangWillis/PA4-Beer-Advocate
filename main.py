@@ -8,7 +8,7 @@ import copy
 import json
 import matplotlib.pyplot as plt
 from models import *
-from configs import cfg
+# from configs import cfg
 import pandas as pd
 from nltk.translate import bleu_score
 
@@ -17,9 +17,6 @@ DATA_SET_DIR = '/datasets/cs190f-public/BeerAdvocateDataset/'
 START_CHAR = 'BOS'
 STOP_CHAR = 'EOS'
 
-SOS_VEC = char_to_one_hot(START_CHAR)
-EOS_VEC = char_to_one_hot(STOP_CHAR)
-
 CHAR_MAP_FILE = 'char_map.json' 
 with open(CHAR_MAP_FILE, 'r') as cmap_file:
     CHAR_MAP = json.load(cmap_file)
@@ -27,7 +24,10 @@ with open(CHAR_MAP_FILE, 'r') as cmap_file:
 def char_to_one_hot(c, char_map=CHAR_MAP):
     char_vec = [0. for i in range(len(char_map))]
     char_vec[char_map[c]] = 1.
-    return torch.tensor(char_vec)
+    return char_vec
+
+SOS_VEC = char_to_one_hot(START_CHAR)
+EOS_VEC = char_to_one_hot(STOP_CHAR)
 
 def load_data(fname):
     df = pd.read_csv(fname)
@@ -36,7 +36,13 @@ def load_data(fname):
 def process_train_data(data):
     # TODO: Input is a pandas DataFrame and return a numpy array (or a torch Tensor/ Variable)
     # that has all features (including characters in one hot encoded form).
-    raise NotImplementedError
+    data = data[['beer/style','review/overall','review/text']]
+    # For every review
+    for index, row in data.iterrows():
+        review = []
+        for c in str(row['review/text']):
+            review.append(char_to_one_hot(c))
+        yield review
 
     
 def train_valid_split(data, labels):
@@ -46,11 +52,7 @@ def train_valid_split(data, labels):
     
     
 def process_test_data(data):
-    # TODO: Takes in pandas DataFrame and returns a numpy array (or a torch Tensor/ Variable)
-    # that has all input features. Note that test data does not contain any review so you don't
-    # have to worry about one hot encoding the data.
     raise NotImplementedError
-
     
 def pad_data(orig_data):
     # TODO: Since you will be training in batches and training sample of each batch may have reviews
@@ -63,10 +65,10 @@ def pad_data(orig_data):
         longest = max(len(rev), longest)
 
     for rev in orig_data:
-        pad = EOS_VEC.repeat(longest-len(rev), 1)
-        pad_data.append(torch.cat((rev,pad)))
+        pad = [copy.deepcopy(EOS_VEC) for i in range(longest-len(rev))]
+        pad_data.append(rev.extend(pad))
 
-    return np.array(pad_data)
+    return pad_data
 
     
 
