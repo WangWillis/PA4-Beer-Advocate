@@ -1,5 +1,5 @@
 cfg = {}
-cfg['input_dim'] = 102
+cfg['input_dim'] = 207
 cfg['hidden_dim'] = 100
 cfg['output_dim'] = 102
 cfg['layers'] = 2
