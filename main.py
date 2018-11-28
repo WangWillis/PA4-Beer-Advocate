@@ -70,29 +70,70 @@ def pad_data(orig_data):
 
     return pad_data
 
-    
+def get_batch(feat_iter, targ_iter, size):
+    batch_feat = []
+    batch_targ = []
+    for i, feat in feat_iter:
+        batch_feat.append(feat)
+        if (i == size):
+            break
+    for i, targ in targ_iter:
+        batch_targ.append(targ)
+        if (i == size):
+            break
 
+    return (pad_data(batch_feat) pad_data(batch_targ))
+
+CHECK_SIZE = 10
 def train(model, X_train, y_train, X_valid, y_valid, cfg):
     epochs = cfg['epochs']
     batch_size = cfg['batch_size']
     learing_rate = cfg['learning_rate']
     reg_const = cfg['L2_penalty']]
-    num_mini_batches = int(len(X_train)/batch_size)
+
+    opt = optim.Adam(model.parameters(), lr=learning_rate)
+    loss_func = nn.CrossEntropyLoss()
+
+    train_batch = []
 
     val_loss = []
     for epoch in range(epochs):
         total_train_loss = 0.
         print('Starting epoch: %d' % epoch)
         for i in range(0, len(X_train), batch_size):
+            mini_batch = int(i/batch_size)
             end_pos = i+batch_size
-            batch_vec = X_train[i:end_pos]
-            batch_targ = y_train[i:end_pos]
 
+            # so it does not have to pad every time in future epochs
+            if (mini_batch >= len(train_batch)):
+                batch_vec, batch_targ = get_batch(X_train, y_train, batch_size)
+                train_batch.append((batch_vec, batch_targ))
+            batch_vec, batch_targ = train_batch[mini_batch]
 
+            opt.zero_grad()
 
-        # validate the model
+            model.set_hidden(batch_size, zero=True)
+            out = model(batch_vec)
+            loss = loss_func(out, batch_targ)
+            total_train_loss += loss
+            
+            loss.backwards()
+            opt.step()
 
-        # print statistics
+            del batch_vec, batch_targ, out, loss
+
+            if (mini_batch % CHECK_SIZE == 0):
+                # validate the model
+                model.set_hidden(len(X_valid), zero=True)
+                v_out = model(X_valid)
+                v_loss = loss_func(v_out, y_valid)
+                val_loss.append(v_loss)
+                # print statistics
+                print('Epoch %d, Mini_Batch %d' % (epoch, mini_batch))
+                print('Average Train Loss: %.4f, Validation Loss: %.4f' % (total_train_loss/batch_size, v_loss))
+                total_train_loss = 0.
+                
+                del v_out, v_loss
     
     
 def generate(model, X_test, cfg):
