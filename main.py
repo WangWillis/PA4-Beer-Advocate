@@ -61,7 +61,14 @@ def process_train_data(data):
             if (c in ONE_HOT_DICT):
                 review.append(ONE_HOT_DICT[c])
         review.append(EOS_VEC)
+
+        metadata = []
+        metadata.append(BEER_STYLE_DICT[row['beer/style'])
+        metadata.append(float(row['review/overall']))
+
         feats.append(review[:-1])
+        feats.extend(metadata)
+
         targs.append(review[1:])
     print('Processing time for size %d dataset: %.2f' % (data.shape[0], time.time-time))
     return feats, targs
