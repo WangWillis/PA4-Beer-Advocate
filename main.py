@@ -63,7 +63,7 @@ def process_train_data(data):
         review.append(EOS_VEC)
         feats.append(review[:-1])
         targs.append(review[1:])
-    print('Processing time for size %d dataset: %.2f' % (data.shape[0], time.time-time))
+    print('Processing time for size %d dataset: %.2f' % (data.shape[0], time.time()-start))
     return feats, targs
 
     
