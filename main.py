@@ -178,11 +178,25 @@ def train(model, train_data, val_data, cfg):
                 
                 del v_out, v_loss
     
-    
-def generate(model, X_test, cfg):
+
+
+def generate(model, metadata, cfg):
     # TODO: Given n rows in test data, generate a list of n strings, where each string is the review
     # corresponding to each input row in test data.
-    raise NotImplementedError
+
+    # For each beer in test data
+    for n in len(X_test):
+        
+        cur = SOS_VEC + metadata
+
+        # Generate up to max_len characters per review
+        for c in cfg['max_len']:
+            model.forward(sequence, train)
+            
+    return reviews
+
+def generateBleuScore(reference, candidate):
+    return bleu_score.sentence_bleu(reference, candidate)
     
     
 def save_to_file(outputs, fname):
