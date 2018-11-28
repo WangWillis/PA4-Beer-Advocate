@@ -25,23 +25,28 @@ class baselineLSTM(nn.Module):
         self.set_hidden(batch_size=1, zero=True)
 
         self.out_layer = nn.Linear(self.hidden_dim, self.output_dim)
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=2)
 
     def set_hidden(self, batch_size, zero=False):
+        del self.hidden
         if (zero):
-            self.hidden = (torch.zeros(self.layers_dim*self.directions, batch_size, self.hidden_dim),\
-                           torch.zeros(self.layers_dim*self.directions, batch_size, self.hidden_dim)) 
+            self.hidden = (torch.zeros(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda(),\
+                           torch.zeros(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda()) 
         else:
-            self.hidden = (torch.randn(self.layers_dim*self.directions, batch_size, self.hidden_dim),\
-                           torch.randn(self.layers_dim*self.directions, batch_size, self.hidden_dim))
+            self.hidden = (torch.randn(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda(),\
+                           torch.randn(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda())
         
         
-    def forward(self, sequence, train=False):
+    def forward(self, sequence, train=False, init_hidden=False):
         # Takes in the sequence of the form (batch_size x sequence_length x input_dim) and
         # returns the output of form (batch_size x sequence_length x output_dim)
+        if (init_hidden):
+            self.set_hidden(zero=train, batch_size=len(sequence))
+
         batch_size = sequence.size(0)
         seq_len = sequence.size(1)
-        out, hidden = self.lstm(sequence, self.hidden)
-        out = self.out_layer(out.view(-1, out.size(2))) 
-        out = out.veiw(batch_size, seq_len, self.output_dim)
+        out, hidden = self.lstm(sequence.cuda(), self.hidden)
+        out = self.out_layer(out.contiguous().view(-1, out.size(2)).cuda()) 
+        out = out.contiguous().view(batch_size, seq_len, self.output_dim).cuda()
+        del batch_size, seq_len, hidden, sequence, train, init_hidden
         return self.softmax(out)
