@@ -192,7 +192,7 @@ def generate(model, metadata, cfg):
 
     batch_size = len(metadata)
 
-    model.set_hidden(batch_size)
+    model.set_hidden(batch_size, zero=True)
     # For each beer in test data
 
     reviews = ['' for i in range(batch_size)]
@@ -244,7 +244,7 @@ if __name__ == "__main__":
     train_data_fname = DATA_SET_DIR+'BeerAdvocate_Train.csv'
     test_data_fname = DATA_SET_DIR+'BeerAdvocate_Test.csv'
     out_fname = 'out.txt'
-    
+     
     train_data = load_data(train_data_fname) # Generating the pandas DataFrame
     test_data = load_data(test_data_fname) # Generating the pandas DataFrame
     train_data = train_data.sample(frac=DATA_PERC).reset_index(drop=True)
@@ -265,5 +265,6 @@ if __name__ == "__main__":
     else:
         model.load_state_dict(torch.load(args.load_model))
         model.to(DEVICE)
+
     outputs = generate(model, X_test, cfg) # Generate the outputs for test data
     save_to_file(outputs, out_fname) # Save the generated outputs to a file
