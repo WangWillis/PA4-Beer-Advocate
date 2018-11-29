@@ -13,7 +13,8 @@ from configs import cfg
 import pandas as pd
 from nltk.translate import bleu_score
 
-import gc
+import argparse
+
 
 DATA_SET_DIR = '/datasets/cs190f-public/BeerAdvocateDataset/'
 
@@ -115,9 +116,12 @@ def train(model, train_data, val_data, cfg):
     learning_rate = cfg['learning_rate']
     reg_const = cfg['L2_penalty']
 
+    best_loss = float('inf')
+
     opt = optim.Adam(model.parameters(), lr=learning_rate)
     loss_func = nn.CrossEntropyLoss()
 
+    train_loss = []
     val_loss = []
     for epoch in range(epochs):
         total_train_loss = 0.
@@ -165,17 +169,19 @@ def train(model, train_data, val_data, cfg):
                 avg_val_loss = tot_val_loss/(len(val_data)-(len(val_data)%batch_size))
                 avg_train_loss = total_train_loss/CHECK_SIZE
 
+                if (avg_val_loss < best_loss):
+                    torch.save(model.state_dict(), 'best_%s_model.pt' % model.__class__.__name__)
+                    best_loss = avg_val_loss
+
                 total_train_loss = 0.
 
+                train_loss.append(avg_train_loss)
                 val_loss.append(avg_val_loss)
 
                 # print statistics
                 print('Epoch %d, Mini_Batch %d' % (epoch, mini_batch))
                 print('Average Train Loss: %.8f, Validation Loss: %.8f' % (avg_train_loss, avg_val_loss))
-
-
-    
-
+    return train_loss, val_loss 
 
 def generate(model, metadata, cfg):
     # TODO: Given n rows in test data, generate a list of n strings, where each string is the review
@@ -207,6 +213,11 @@ else:
 
 DATA_PERC = 0.05
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model', default='lstm')
+
+    args = parser.parse_args()
+
     train_data_fname = DATA_SET_DIR+'BeerAdvocate_Train.csv'
     test_data_fname = DATA_SET_DIR+'BeerAdvocate_Test.csv'
     out_fname = 'out.txt'
@@ -222,6 +233,8 @@ if __name__ == "__main__":
     # X_test = process_test_data(test_data) # Converting DataFrame to numpy array
     
     model = baselineLSTM(cfg) # Replace this with model = <your model name>(cfg)
+    if (args.model == 'gru'):
+        model = GRU(cfg)
     model.to(DEVICE)
     
     train(model, train_data,  val_data, cfg) # Train the model
