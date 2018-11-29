@@ -25,7 +25,7 @@ class baselineLSTM(nn.Module):
         self.set_hidden(batch_size=1, zero=True)
 
         self.out_layer = nn.Linear(self.hidden_dim, self.output_dim)
-        self.softmax = nn.LogSoftmax(dim=2)
+        self.softmax = nn.Softmax(dim=2)
 
     def set_hidden(self, batch_size, zero=False):
         del self.hidden
@@ -74,7 +74,7 @@ class GRU(nn.Module):
         self.set_hidden(batch_size=1, zero=True)
 
         self.out_layer = nn.Linear(self.hidden_dim, self.output_dim)
-        self.softmax = nn.LogSoftmax(dim=2)
+        self.softmax = nn.Softmax(dim=2)
 
     def set_hidden(self, batch_size, zero=False):
         del self.hidden
