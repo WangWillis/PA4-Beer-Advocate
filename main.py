@@ -1,6 +1,7 @@
 import time
 import torch
 import torch.nn as nn
+import torch.distributions as dis
 import torch.optim as optim
 from torch.autograd import Variable
 import numpy as np
@@ -23,6 +24,8 @@ STOP_CHAR = 'EOS'
 CHAR_MAP_FILE = 'char_map.json' 
 with open(CHAR_MAP_FILE, 'r') as cmap_file:
     CHAR_MAP = json.load(cmap_file)
+
+REVERSE_CHAR_MAP = dict((v, k) for k, v in CHAR_MAP.iteritems())
 
 BEER_STYLE_MAP_FILE = 'beer_styles.json' 
 with open(BEER_STYLE_MAP_FILE, 'r') as bmap_file:
@@ -181,15 +184,34 @@ def generate(model, metadata, cfg):
     # TODO: Given n rows in test data, generate a list of n strings, where each string is the review
     # corresponding to each input row in test data.
 
-    # For each beer in test data
-    for n in len(X_test):
-        
-        cur = SOS_VEC + metadata
+    batch_size = len(metadata)
 
-        # Generate up to max_len characters per review
-        for c in cfg['max_len']:
-            model.forward(sequence, train)
-            
+    model.set_hidden(batch_size)
+    # For each beer in test data
+
+    reviews = ['' for i in range(batch_size)]
+
+    cur = torch.FloatTensor([SOS_VEC + metadata[i] for i in range(batch_size)])
+
+    # Generate up to max_len characters per review
+    for c in cfg['max_len']:
+        # Get a batch_size x 1 x 207 tensor
+        out = model.forward(cur)
+        sampler = dis.Categorical(out)
+        
+        # Generate a batch_size x 1 list of predicted character indices
+        pred = sampler.sample()
+
+        # For each review, add the new character to the review string
+        for n in range(batch_size):
+            index = pred[n].item()
+            char = REVERSE_CHAR_MAP[index]
+            reviews[n] = reviews[n] + char
+
+            # Append the metadata to the character for inputting the next timestep
+            cur[n] = ONE_HOT_DICT[char] + metadata[n]
+
+        
     return reviews
 
 def generateBleuScore(reference, candidate):
