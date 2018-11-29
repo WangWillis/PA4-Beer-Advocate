@@ -26,7 +26,7 @@ CHAR_MAP_FILE = 'char_map.json'
 with open(CHAR_MAP_FILE, 'r') as cmap_file:
     CHAR_MAP = json.load(cmap_file)
 
-REVERSE_CHAR_MAP = dict((v, k) for k, v in CHAR_MAP.iteritems())
+REVERSE_CHAR_MAP = dict((v, k) for k, v in CHAR_MAP.items())
 
 BEER_STYLE_MAP_FILE = 'beer_styles.json' 
 with open(BEER_STYLE_MAP_FILE, 'r') as bmap_file:
