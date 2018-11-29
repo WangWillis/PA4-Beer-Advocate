@@ -266,5 +266,9 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(args.load_model))
         model.to(DEVICE)
 
-    outputs = generate(model, X_test, cfg) # Generate the outputs for test data
+    test_meta = []
+    for i in range(len(X_test)):
+        features = X_test[i][0]
+        test_meta.append(features[len(CHAR_MAP):]
+    outputs = generate(model, test_meta, cfg) # Generate the outputs for test data
     save_to_file(outputs, out_fname) # Save the generated outputs to a file
