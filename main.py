@@ -88,7 +88,14 @@ def train_valid_split(data, split_perc=0.95):
     return data[:split_idx], data[split_idx:] 
     
 def process_test_data(data):
-    pass
+    data = data[['beer/style','review/overall']]
+    feats = []
+
+    # For every review
+    for index, row in data.iterrows():
+        review = [SOS_VEC + BEER_STYLE_DICT[row['beer/style']] + [float(row['review/overall'])]]
+        feats.append(review)
+    return feats
     
 EOS_PAD = EOS_VEC+[0 for i in range(len(BEER_STYLE_DICT))]+[0]
 MAX_TRAIN_LEN = 10000
@@ -186,21 +193,21 @@ def train(model, train_data, val_data, cfg):
                 print('Average Train Loss: %.8f, Validation Loss: %.8f' % (avg_train_loss, avg_val_loss))
     return train_loss, val_loss 
 
-def generate(model, metadata, cfg):
+def generate(model, X_test, cfg):
     # TODO: Given n rows in test data, generate a list of n strings, where each string is the review
     # corresponding to each input row in test data.
 
-    batch_size = len(metadata)
+    batch_size = len(X_test)
 
     model.set_hidden(batch_size, zero=True)
     # For each beer in test data
 
     reviews = ['' for i in range(batch_size)]
 
-    cur = torch.FloatTensor([SOS_VEC + metadata[i] for i in range(batch_size)])
+    cur = torch.FloatTensor(X_test)
 
     # Generate up to max_len characters per review
-    for c in cfg['max_len']:
+    for c in range(cfg['max_len']):
         # Get a batch_size x 1 x 207 tensor
         out = model.forward(cur)
         sampler = dis.Categorical(out)
@@ -215,7 +222,7 @@ def generate(model, metadata, cfg):
             reviews[n] = reviews[n] + char
 
             # Append the metadata to the character for inputting the next timestep
-            cur[n] = ONE_HOT_DICT[char] + metadata[n]
+            cur[n] = torch.FloatTensor(ONE_HOT_DICT[char] + X_test[n][0][len(CHAR_MAP):])
 
         
     return reviews
@@ -249,6 +256,7 @@ if __name__ == "__main__":
     test_data = load_data(test_data_fname) # Generating the pandas DataFrame
     train_data = train_data.sample(frac=DATA_PERC).reset_index(drop=True)
     test_data = test_data.sample(frac=0.08*DATA_PERC).reset_index(drop=True)
+    X_test = process_test_data(test_data)
 
     print('Train Size: %d, Test Size: %d' % (train_data.shape[0], test_data.shape[0]))
 
@@ -266,9 +274,5 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(args.load_model))
         model.to(DEVICE)
 
-    test_meta = []
-    for i in range(len(X_test)):
-        features = X_test[i][0]
-        test_meta.append(features[len(CHAR_MAP):]
-    outputs = generate(model, test_meta, cfg) # Generate the outputs for test data
+    outputs = generate(model, X_test, cfg) # Generate the outputs for test data
     save_to_file(outputs, out_fname) # Save the generated outputs to a file
