@@ -215,6 +215,7 @@ DATA_PERC = 0.05
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', default='lstm')
+    parser.add_argument('--load-model', default=None)
 
     args = parser.parse_args()
 
@@ -230,13 +231,17 @@ if __name__ == "__main__":
     print('Train Size: %d, Test Size: %d' % (train_data.shape[0], test_data.shape[0]))
 
     train_data,  val_data = train_valid_split(train_data) # Splitting the train data into train-valid data
-    # X_test = process_test_data(test_data) # Converting DataFrame to numpy array
     
     model = baselineLSTM(cfg) # Replace this with model = <your model name>(cfg)
     if (args.model == 'gru'):
         model = GRU(cfg)
     model.to(DEVICE)
     
-    train(model, train_data,  val_data, cfg) # Train the model
+    if (args.load_model is None):
+        train_loss, val_loss = train(model, train_data,  val_data, cfg) # Train the model
+        np.save('%s_model_train_data.npy' % args.model, np.array([train_loss, val_loss]))
+    else:
+        model.load_state_dict(torch.load(args.load_model))
+        model.to(DEVICE)
     outputs = generate(model, X_test, cfg) # Generate the outputs for test data
     save_to_file(outputs, out_fname) # Save the generated outputs to a file
