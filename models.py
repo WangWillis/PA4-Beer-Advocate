@@ -28,7 +28,6 @@ class baselineLSTM(nn.Module):
         self.softmax = nn.Softmax(dim=2)
 
     def set_hidden(self, batch_size, zero=False):
-        del self.hidden
         if (zero):
             self.hidden = (torch.zeros(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda(),\
                            torch.zeros(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda()) 
@@ -45,8 +44,7 @@ class baselineLSTM(nn.Module):
 
         batch_size = sequence.size(0)
         seq_len = sequence.size(1)
-        out, hidden = self.lstm(sequence.cuda(), self.hidden)
+        out, self.hidden = self.lstm(sequence.cuda(), self.hidden)
         out = self.out_layer(out.contiguous().view(-1, out.size(2)).cuda()) 
         out = out.contiguous().view(batch_size, seq_len, self.output_dim).cuda()
-        del batch_size, seq_len, hidden, sequence, train, init_hidden
         return self.softmax(out)

@@ -69,38 +69,23 @@ def process_train_data(data):
 
                 feat.append(feat_vec)
                 targ.append(CHAR_MAP[c])
-                # del feat_vec
 
         targ.append(CHAR_MAP[STOP_CHAR])
         feats.append(feat)
         targs.append(targ)
 
-        # del beer_style_vec, r_score, feat, targ, start_feat
-    # del data
 
     return feats, targs
 
     
-def train_valid_split(data, split_perc=0.80):
+def train_valid_split(data, split_perc=0.95):
     split_idx = int(split_perc*data.shape[0])
     data = data.sample(frac=1).reset_index(drop=True)
     return data[:split_idx], data[split_idx:] 
     
 def process_test_data(data):
-    data = data[['beer/style','review/overall']]
-    feats = []
-    # # For every review
-    # for index, row in data.iterrows():
-
-        metadata = []
-        metadata.extend(BEER_STYLE_DICT[row['beer/style']])
-        metadata.append(float(row['review/overall']))
-
-    #     review = [SOS_VEC + metadata]
-
-    #     feats.append(review)
-    return feats
-
+    pass
+    
 EOS_PAD = EOS_VEC+[0 for i in range(len(BEER_STYLE_DICT))]+[0]
 MAX_TRAIN_LEN = 10000
 def pad_data(orig_data, targ=False):
@@ -120,7 +105,6 @@ def pad_data(orig_data, targ=False):
     for rev in orig_data:
         rev.extend(pad_arr[:longest-len(rev)])
     tensor = torch.tensor(orig_data)
-    # del orig_data, pad_arr, longest, eos_vec
     return tensor
 
 CHECK_SIZE = 10
@@ -132,7 +116,6 @@ def train(model, train_data, val_data, cfg):
     reg_const = cfg['L2_penalty']
 
     opt = optim.Adam(model.parameters(), lr=learning_rate)
-    # del learning_rate, reg_const
     loss_func = nn.CrossEntropyLoss()
 
     val_loss = []
@@ -144,7 +127,6 @@ def train(model, train_data, val_data, cfg):
             end_pos = i+batch_size
 
             batch_data = train_data[i:end_pos]
-            # del end_pos
             # so it does not have to pad every time in future epochs
             batch_vec, batch_targ = process_train_data(batch_data)
             batch_vec = pad_data(batch_vec)
@@ -161,7 +143,6 @@ def train(model, train_data, val_data, cfg):
             loss.backward()
             opt.step()
 
-            # del loss, out, batch_vec, batch_targ, flat_out, flat_targ, batch_data
 
             if (mini_batch % CHECK_SIZE == 0 and mini_batch != 0):
                 # validate the model
@@ -169,7 +150,6 @@ def train(model, train_data, val_data, cfg):
                 for j in range(0, len(val_data), batch_size):
                     end_pos = j+batch_size
                     batch_data = val_data[j:end_pos]
-                    # del end_pos
 
                     batch_vec, batch_targ = process_train_data(batch_data)
                     batch_vec = pad_data(batch_vec)
@@ -181,7 +161,6 @@ def train(model, train_data, val_data, cfg):
                     v_loss = loss_func(flat_out, flat_targ)
                     tot_val_loss += float(v_loss)
 
-                    # del batch_vec, batch_targ, v_out, flat_out, v_loss, flat_targ, batch_data
 
                 avg_val_loss = tot_val_loss/(len(val_data)-(len(val_data)%batch_size))
                 avg_train_loss = total_train_loss/CHECK_SIZE
@@ -194,9 +173,7 @@ def train(model, train_data, val_data, cfg):
                 print('Epoch %d, Mini_Batch %d' % (epoch, mini_batch))
                 print('Average Train Loss: %.8f, Validation Loss: %.8f' % (avg_train_loss, avg_val_loss))
 
-                # del  avg_val_loss, avg_train_loss
 
-            # del mini_batch
     
 
 
