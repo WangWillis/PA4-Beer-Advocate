@@ -10,6 +10,6 @@ cfg['learning_rate'] = 1e-3
 cfg['L2_penalty'] = 1e-2
 cfg['gen_temp'] = 0.4
 cfg['max_len'] = 10000
-cfg['epochs'] = 3
+cfg['epochs'] = 2
 cfg['cuda'] = True
 cfg['train'] = True
