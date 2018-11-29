@@ -26,7 +26,7 @@ CHAR_MAP_FILE = 'char_map.json'
 with open(CHAR_MAP_FILE, 'r') as cmap_file:
     CHAR_MAP = json.load(cmap_file)
 
-REVERSE_CHAR_MAP = dict((v, k) for k, v in CHAR_MAP.iteritems())
+REVERSE_CHAR_MAP = dict((v, k) for k, v in CHAR_MAP.items())
 
 BEER_STYLE_MAP_FILE = 'beer_styles.json' 
 with open(BEER_STYLE_MAP_FILE, 'r') as bmap_file:
@@ -192,7 +192,7 @@ def generate(model, metadata, cfg):
 
     batch_size = len(metadata)
 
-    model.set_hidden(batch_size)
+    model.set_hidden(batch_size, zero=True)
     # For each beer in test data
 
     reviews = ['' for i in range(batch_size)]
@@ -265,5 +265,10 @@ if __name__ == "__main__":
     else:
         model.load_state_dict(torch.load(args.load_model))
         model.to(DEVICE)
-    outputs = generate(model, X_test, cfg) # Generate the outputs for test data
+
+    test_meta = []
+    for i in range(len(X_test)):
+        features = X_test[i][0]
+        test_meta.append(features[len(CHAR_MAP):]
+    outputs = generate(model, test_meta, cfg) # Generate the outputs for test data
     save_to_file(outputs, out_fname) # Save the generated outputs to a file
