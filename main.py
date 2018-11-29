@@ -148,7 +148,7 @@ def train(model, train_data, val_data, cfg):
 
             opt.zero_grad()
 
-            out = model(batch_vec, train=True, init_hidden=True)
+            out, _ = model(batch_vec, train=True, init_hidden=True)
             flat_out = out.contiguous().view(-1,VOCAB_SIZE).cuda()
             flat_targ = batch_targ.contiguous().view(-1).cuda()
             loss = loss_func(flat_out, flat_targ)
@@ -170,7 +170,7 @@ def train(model, train_data, val_data, cfg):
                     batch_vec = pad_data(batch_vec)
                     batch_targ = pad_data(batch_targ, targ=True)
 
-                    v_out = model(batch_vec, train=True, init_hidden=True)
+                    v_out, _ = model(batch_vec, train=True, init_hidden=True)
                     flat_out = v_out.contiguous().view(-1,VOCAB_SIZE).cuda()
                     flat_targ = batch_targ.contiguous().view(-1).cuda()
                     v_loss = loss_func(flat_out, flat_targ)
@@ -215,7 +215,7 @@ def generate(model, X_test, cfg):
     # Generate up to max_len characters per review
     for c in range(cfg['max_len']):
         # Get a batch_size x 1 x 207 tensor
-        out = model.forward(cur)
+        _, out = model.forward(cur)
         sampler = dis.Categorical(out)
         
         # Generate a batch_size x 1 list of predicted character indices
@@ -268,7 +268,7 @@ if __name__ == "__main__":
     test_data = load_data(test_data_fname) # Generating the pandas DataFrame
     train_data = train_data.sample(frac=DATA_PERC).reset_index(drop=True)
     test_data = test_data.sample(frac=0.08*DATA_PERC).reset_index(drop=True)
-    X_test = process_test_data(test_data)
+    X_test = process_test_data(test_data.head(5))
 
     print('Train Size: %d, Test Size: %d' % (train_data.shape[0], test_data.shape[0]))
 

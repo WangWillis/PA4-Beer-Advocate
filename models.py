@@ -25,7 +25,7 @@ class baselineLSTM(nn.Module):
         self.set_hidden(batch_size=1, zero=True)
 
         self.out_layer = nn.Linear(self.hidden_dim, self.output_dim)
-        self.softmax = nn.Softmax(dim=2)
+        self.softmax = nn.LogSoftmax(dim=2)
 
     def set_hidden(self, batch_size, zero=False):
         del self.hidden
@@ -50,7 +50,7 @@ class baselineLSTM(nn.Module):
         out = torch.div(out, temp)
         out = out.contiguous().view(batch_size, seq_len, self.output_dim).cuda()
         del batch_size, seq_len
-        return self.softmax(out)
+        return out, self.softmax(out)
 
 class GRU(nn.Module):
     def __init__(self, config):
@@ -74,7 +74,7 @@ class GRU(nn.Module):
         self.set_hidden(batch_size=1, zero=True)
 
         self.out_layer = nn.Linear(self.hidden_dim, self.output_dim)
-        self.softmax = nn.Softmax(dim=2)
+        self.softmax = nn.LogSoftmax(dim=2)
 
     def set_hidden(self, batch_size, zero=False):
         del self.hidden
@@ -95,4 +95,4 @@ class GRU(nn.Module):
         out = self.out_layer(out.contiguous().view(-1, out.size(2)).cuda()) 
         out = torch.div(out, temp)
         out = out.contiguous().view(batch_size, seq_len, self.output_dim).cuda()
-        return self.softmax(out)
+        return out, self.softmax(out)
