@@ -1,6 +1,6 @@
 cfg = {}
 cfg['input_dim'] = 207
-cfg['hidden_dim'] = 10
+cfg['hidden_dim'] = 128
 cfg['output_dim'] = 102
 cfg['layers'] = 2
 cfg['dropout'] = 0.5

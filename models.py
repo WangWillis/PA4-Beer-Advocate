@@ -28,6 +28,7 @@ class baselineLSTM(nn.Module):
         self.softmax = nn.Softmax(dim=2)
 
     def set_hidden(self, batch_size, zero=False):
+        del self.hidden
         if (zero):
             self.hidden = (torch.zeros(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda(),\
                            torch.zeros(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda()) 
@@ -48,11 +49,12 @@ class baselineLSTM(nn.Module):
         out = self.out_layer(out.contiguous().view(-1, out.size(2)).cuda()) 
         out = torch.div(out, temp)
         out = out.contiguous().view(batch_size, seq_len, self.output_dim).cuda()
+        del batch_size, seq_len
         return self.softmax(out)
 
 class GRU(nn.Module):
     def __init__(self, config):
-        super(baselineLSTM, self).__init__()
+        super(GRU, self).__init__()
         
         # Initialize your layers and variables that you want;
         # Keep in mind to include initialization for initial hidden states of LSTM, you
@@ -75,12 +77,11 @@ class GRU(nn.Module):
         self.softmax = nn.Softmax(dim=2)
 
     def set_hidden(self, batch_size, zero=False):
+        del self.hidden
         if (zero):
-            self.hidden = (torch.zeros(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda(),\
-                           torch.zeros(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda()) 
+            self.hidden = torch.zeros(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda()
         else:
-            self.hidden = (torch.randn(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda(),\
-                           torch.randn(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda())
+            self.hidden = torch.randn(self.layers_dim*self.directions, batch_size, self.hidden_dim).cuda()
         
     def forward(self, sequence, train=False, init_hidden=False, temp=1.):
         # Takes in the sequence of the form (batch_size x sequence_length x input_dim) and

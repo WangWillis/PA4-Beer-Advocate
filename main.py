@@ -118,7 +118,7 @@ def pad_data(orig_data, targ=False):
     tensor = torch.tensor(orig_data)
     return tensor
 
-CHECK_SIZE = 10
+CHECK_SIZE = 100
 VOCAB_SIZE = len(ONE_HOT_DICT)
 def train(model, train_data, val_data, cfg):
     epochs = cfg['epochs']
@@ -135,7 +135,7 @@ def train(model, train_data, val_data, cfg):
     val_loss = []
     for epoch in range(epochs):
         total_train_loss = 0.
-        print('Starting epoch: %d' % epoch)
+        print('Starting epoch: %d' % epoch, flush=True)
         for i in range(0, len(train_data), batch_size):
             mini_batch = int(i/batch_size)
             end_pos = i+batch_size
@@ -157,6 +157,7 @@ def train(model, train_data, val_data, cfg):
             loss.backward()
             opt.step()
 
+            del out, flat_out, flat_targ, loss, end_pos, batch_data, batch_vec, batch_targ
 
             if (mini_batch % CHECK_SIZE == 0 and mini_batch != 0):
                 # validate the model
@@ -175,6 +176,8 @@ def train(model, train_data, val_data, cfg):
                     v_loss = loss_func(flat_out, flat_targ)
                     tot_val_loss += float(v_loss)
 
+                    del v_out, flat_out, flat_targ, v_loss, end_pos, batch_data, batch_vec, batch_targ
+
 
                 avg_val_loss = tot_val_loss/(len(val_data)-(len(val_data)%batch_size))
                 avg_train_loss = total_train_loss/CHECK_SIZE
@@ -190,7 +193,7 @@ def train(model, train_data, val_data, cfg):
 
                 # print statistics
                 print('Epoch %d, Mini_Batch %d' % (epoch, mini_batch))
-                print('Average Train Loss: %.8f, Validation Loss: %.8f' % (avg_train_loss, avg_val_loss))
+                print('Average Train Loss: %.8f, Validation Loss: %.8f' % (avg_train_loss, avg_val_loss), flush=True)
     return train_loss, val_loss 
 
 def generate(model, X_test, cfg):
@@ -249,7 +252,7 @@ if cfg['cuda']:
 else:
     DEVICE = torch.device("cpu")
 
-DATA_PERC = 0.05
+DATA_PERC = 0.25
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', default='lstm')
@@ -275,6 +278,7 @@ if __name__ == "__main__":
     if (args.model == 'gru'):
         model = GRU(cfg)
     model.to(DEVICE)
+    model.cuda()
     
     if (args.load_model is None):
         train_loss, val_loss = train(model, train_data,  val_data, cfg) # Train the model
