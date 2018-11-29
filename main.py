@@ -204,6 +204,9 @@ def generate(model, X_test, cfg):
 
     reviews = ['' for i in range(batch_size)]
 
+    # Keep track of where the EOS is located for each review
+    eos_locations = [cfg['max_len']-1]*batch_size
+
     cur = torch.FloatTensor(X_test)
 
     # Generate up to max_len characters per review
@@ -219,12 +222,17 @@ def generate(model, X_test, cfg):
         for n in range(batch_size):
             index = pred[n].item()
             char = REVERSE_CHAR_MAP[index]
+            
+            if char == STOP_CHAR and eos_locations[n] == (cfg['max_len']-1):
+                eos_locations[n] = c
             reviews[n] = reviews[n] + char
 
             # Append the metadata to the character for inputting the next timestep
             cur[n] = torch.FloatTensor(ONE_HOT_DICT[char] + X_test[n][0][len(CHAR_MAP):])
 
-        
+    for i in range(len(reviews)):
+        reviews[i] = reviews[i][:eos_locations[i]]
+
     return reviews
 
 def generateBleuScore(reference, candidate):
@@ -233,7 +241,8 @@ def generateBleuScore(reference, candidate):
     
 def save_to_file(outputs, fname):
     with open(fname, 'w') as out_file:
-        out_file.write(outputs)
+        for review in outputs:
+            out_file.write("%s\n" % review)
 
 if cfg['cuda']:
     DEVICE = torch.device("cuda")
